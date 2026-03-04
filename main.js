@@ -1,7 +1,13 @@
 const { app, BrowserWindow, shell, ipcMain } = require('electron');
 const path = require('path');
 const DiscordRPC = require('discord-rpc');
+const Store = require('electron-store');
+const fs = require('fs');
+const https = require('https');
+const extractZip = require('extract-zip');
+const { exec } = require('child_process');
 
+const store = new Store();
 const clientId = '1346541144141103114'; 
 let rpc;
 
@@ -62,19 +68,19 @@ function createWindow() {
     height: 720,
     minWidth: 1024,
     minHeight: 600,
+    center: true,
     resizable: true,
     frame: false, 
     icon: path.join(__dirname, '256x256.png'),
     transparent: true,
     autoHideMenuBar: true,
     webPreferences: {
-      nodeIntegration: true,
+      nodeIntegration: true, // Keeping for now to minimize breakage during refactor, but moving store to main
       contextIsolation: false,
       enableRemoteModule: true
     }
   });
 
-  win.maximize(); 
   win.loadFile('index.html');
 
   // Handle window controls
@@ -88,6 +94,9 @@ function createWindow() {
   });
   ipcMain.on('window-close', () => win.close());
 
+  // Store IPC handlers
+  ipcMain.handle('store-get', (event, key) => store.get(key));
+  ipcMain.handle('store-set', (event, key, value) => store.set(key, value));
  
   ipcMain.on('update-rpc', (event, data) => {
     setActivity(data.details, data.state, data.startTime);
